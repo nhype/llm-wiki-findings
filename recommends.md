@@ -91,11 +91,81 @@ Agents do **research + ranked recommendations + alerts.** *You* approve and exec
 
 ---
 
+## 3) AI / Neurovibe Telegram Channel — Content Operation
+
+You run a niche AI-aesthetic channel. The job is **monitor → curate → write in your voice → schedule → ship → learn from engagement**, every day, sustainably. This is the *single best fit* in the whole survey for one specific tool.
+
+### Use Hermes Agent. Almost everything else is wrong-shaped.
+
+`harness-tools-in-the-wild.md` lists, verbatim, a real Hermes deployment: *"autoresearch + Karpathy LLM wiki second-brain + skills creation + scheduled jobs + background monitoring + Telegram/Discord support."* And another: *"two Telegram groups through one gateway."* That is your job description.
+
+### Recommended stack
+
+| Layer | Pick | Why |
+|---|---|---|
+| Runtime | **NousResearch/hermes-agent** on a $5 VPS | Persistent memory, auto-skill generation, native Telegram + scheduled jobs. The genre-fit pick |
+| Post target | Your channel via **Telegram Bot API** (MCP wrapper) | Keep ownership of the bot token; never let the agent rotate it |
+| Source-monitoring MCPs | Web search (Tavily/Exa/Brave) + arXiv + HuggingFace trending + GitHub trending + r/MachineLearning + curated X-list scraping | Quality of agent = quality of sources. Pick narrow, curated > broad |
+| Image generation | OpenAI Images / Stability / Midjourney via MCP | Optional but useful for "neurovibe" aesthetic consistency |
+| Voice anchoring | `CLAUDE.md` / `AGENT.md` with **20–30 of your best past posts** as few-shot examples + explicit voice rules | The single most important file. Without it, every post sounds like ChatGPT |
+| Memory | Hermes built-in + a flat `posted.md` log (what was sent, how it performed) | Prevents reposting, lets the agent learn what your audience actually opens |
+| Token proxy | **lean-ctx** | Daily research runs are token-heavy; `git log`-style compression on web-fetch output adds up fast |
+| Approval gate | Private Telegram chat between you and Hermes | Drafts go to you. You react ✅ → it ships. ❌ → it learns why |
+
+### Suggested agent loop (daily cron)
+
+```
+06:00 UTC — Scout
+  • pull last 24h from each source (X list, r/MachineLearning, arXiv cs.AI, HF trending, GitHub trending)
+  • dedup against posted.md
+  • rank by "neurovibe-fit" score (defined in your AGENT.md)
+  • output: top 5 candidates with one-line summaries
+
+07:00 UTC — Drafter
+  • for top 2 candidates, draft a post in your voice (using few-shot examples)
+  • generate accompanying image if visual-friendly
+  • output: 2 ready-to-ship drafts → DM to you on Telegram
+
+You — approve / edit / reject during your morning coffee
+
+09:00 — 21:00 UTC — Scheduler
+  • ship approved posts at audience-optimized times (Hermes learns these from posted.md analytics)
+
+23:00 UTC — Reflection
+  • pull view/forward/reaction counts from Telegram API for last 7 days
+  • update audience-preferences memory file
+  • flag anything that overperformed → "do more of this"
+  • flag anything that underperformed → "avoid this pattern"
+```
+
+### Hard rules
+
+1. **Drafts always go to you first** for the first 4–6 weeks. Voice calibration takes that long. Auto-publish only once your approval rate stays >90% for 2 weeks.
+2. **Bot token stays in your env vars**, never in agent memory or Git. Hermes calls Telegram via MCP that reads the env var at request time.
+3. **No engagement automation** initially — no auto-replies to comments, no auto-DM responses. Audience trust evaporates the moment they detect a bot replying as you.
+4. **Source whitelist, not blacklist.** Curated X-list of 30–50 accounts beats "monitor all of AI Twitter" 100% of the time. Same for subreddits.
+5. **Citation discipline.** Every post that summarizes external work links the source. Saves you from a viral plagiarism complaint later.
+6. **Voice file lives in Git.** Version it. When the agent drifts, you'll want to roll back.
+
+### What to skip and why
+
+- **Multica / Paperclip / Ruflo** — overkill; this is one person + one channel, not an agent fleet
+- **Claude Code / ECC / Archon** — those are for *building software*, you're publishing content
+- **OpenClaw** — too general; Hermes is more specifically shaped for the "personal assistant on Telegram with memory" pattern
+- **Buffer / Hootsuite / Postiz** — traditional schedulers don't *write* posts. You'd end up doing the writing yourself, defeating the purpose
+
+### What gets you paid back fastest
+
+The voice file (`AGENT.md` with 20–30 example posts + voice rules). Hermes is good; the difference between "okay" and "indistinguishable from you" is 90% in those 20–30 examples. Spend a weekend on it.
+
+---
+
 ## TL;DR
 
 | Use case | Stack |
 |----------|-------|
 | **Telegram bot maintenance** | Claude Code + ECC + Archon + lean-ctx (+ GitNexus if codebase is large) |
 | **Crypto opportunity scouting** | Hermes Agent *or* Multica (4 named roles) + DefiLlama/Dune/Etherscan MCPs + lean-ctx — **research-only**, with you as the execution gate and a hardware wallet for signing |
+| **AI / neurovibe Telegram channel** | Hermes Agent + Telegram Bot API + curated source MCPs + image-gen MCP + lean-ctx — drafts go to you for approval until voice is calibrated |
 
-**The single most important rule: never give an agent your private keys.**
+**Three rules across all three:** never give an agent your private keys; never give an agent your bot tokens; always start with a human approval gate and remove it only after the data says you can.
