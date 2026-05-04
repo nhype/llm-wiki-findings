@@ -160,12 +160,76 @@ The voice file (`AGENT.md` with 20–30 example posts + voice rules). Hermes is 
 
 ---
 
+## 4) Codex-First Variant — If You Prefer OpenAI Codex Over Claude Code
+
+The recommendations above default to Claude Code because that's where the harness ecosystem is densest. If you want **OpenAI Codex** as the base coding agent instead, here's the substitute mapping. Two of the three use cases barely change — only Section 1 has a real swap path.
+
+### What stays the same (model-agnostic layers)
+
+| Layer | Tool | Notes |
+|---|---|---|
+| Personal-assistant runtime | **Hermes Agent** | Model-agnostic by design — switch with `hermes model` command, no code changes. Works with OpenAI / OpenRouter / NVIDIA NIM / Nous Portal |
+| Multi-agent orchestration | **Multica / Paperclip / Ruflo** | All three list Codex in their compatibility matrices day-one |
+| Standalone CLI agent | **OpenClaw** | Codex-compatible via `acpx` (Agent Client Protocol) |
+| Code-graph backend | **GitNexus** / **Graphify** | MCP-based, agent-agnostic. No change |
+| Token proxies | **lean-ctx** / **rtk-ai/rtk** / **context-mode** | All agent-agnostic — same setup, same savings |
+| Adapter layer | **openclaw/acpx** | The headless ACP client explicitly supports Codex alongside Claude |
+
+So **Sections 2 and 3 are unchanged** — Hermes Agent + MCPs runs identically on Codex.
+
+### What changes for Section 1 (Telegram bot maintenance, Codex edition)
+
+| Layer | Claude Code stack | Codex stack |
+|---|---|---|
+| Coding agent | Claude Code | **Codex CLI** |
+| Config pack | affaan-m/everything-claude-code | **ECC still works** (it explicitly ships Codex support) — *or* keep your existing Codex config |
+| Workflow engine | coleam00/Archon | **Archon still works** — uses both Claude Code SDK and Codex SDK (issue #965 confirms Pi/Codex/Claude as parallel providers) |
+| Meta / skill-factory | revfactory/harness | **SaehwanPark/meta-harness** — Codex-runtime port of revfactory's six team patterns. Same Pipeline / Fan-out / Expert Pool / Producer-Reviewer / Supervisor / Hierarchical Delegation, runs natively on Codex |
+| Code-graph (if needed) | GitNexus / Graphify | Same — both agent-agnostic |
+| Token proxy | lean-ctx / rtk | Same — both agent-agnostic |
+
+### What you lose by choosing Codex
+
+- **Chachamaru127/claude-code-harness** — Claude Code-only; tracks Claude Code's release contract (`PreCompact` hook, `monitors.json`) which has no Codex equivalent
+- **anothervibecoder-s/claudecode-harness** — Claude Code-only blueprint
+- **revfactory/harness** (the original) — uses Claude Code's plugin system specifically. Use SaehwanPark's port instead
+- **Some ECC features** — ECC's Claude-Code-specific hooks (e.g., `PreToolUse` enrichment patterns) won't run on Codex; the cross-harness portion (skills, instincts, MCP configs) does
+
+### What you gain by choosing Codex
+
+- **Stanford Meta-Harness reference** is **Claude Opus 4.6**, not Codex — so the 76.4% Terminal-Bench 2.0 result doesn't transfer one-to-one. *But*: Codex has its own published SWE-bench numbers, and the SaehwanPark port lets you run the same six team patterns natively
+- **Cleaner OpenAI ecosystem integration** — if you're already on OpenAI APIs for embeddings, image gen, fine-tunes, etc., Codex keeps everything under one billing/auth surface
+- **OpenAI's "Harness Engineering" doctrine** — OpenAI publishes its own harness-engineering writeup; the Codex agent runtime is built around that thesis natively, so cross-harness configs feel less grafted-on
+
+### Codex-first Telegram-bot stack (revised Section 1)
+
+```
+Codex CLI + ECC (cross-harness mode) + Archon + lean-ctx + GitNexus
+```
+
+Same shape as the Claude Code version. Same productivity properties. The Archon `6.7% → ~70%` PR-acceptance result has been published with Claude — expect *directionally* similar but not identical numbers on Codex (the structural-harness benefit is mostly model-independent).
+
+### Honest pick guidance
+
+- **Pick Claude Code if:** you want the densest current harness ecosystem, Anthropic's `CLAUDE.md` discipline, the Stanford-Meta-Harness 76.4% benchmark, and the most plugin authors targeting your runtime
+- **Pick Codex if:** you're already on OpenAI infrastructure, want a single billing surface, prefer OpenAI's harness doctrine, or need Codex-specific features (longer-running sessions, particular tool-use semantics, or enterprise OpenAI agreements)
+- **Pick both:** Multica, Paperclip, Ruflo, and Hermes all support multi-CLI day-one. There's no penalty for running both — many serious users do, with Claude as primary and Codex as a second opinion
+
+### What stays unchanged regardless
+
+The three rules:
+1. Never give an agent your private keys
+2. Never give an agent your bot tokens
+3. Always start with a human approval gate
+
+---
+
 ## TL;DR
 
-| Use case | Stack |
-|----------|-------|
-| **Telegram bot maintenance** | Claude Code + ECC + Archon + lean-ctx (+ GitNexus if codebase is large) |
-| **Crypto opportunity scouting** | Hermes Agent *or* Multica (4 named roles) + DefiLlama/Dune/Etherscan MCPs + lean-ctx — **research-only**, with you as the execution gate and a hardware wallet for signing |
-| **AI / neurovibe Telegram channel** | Hermes Agent + Telegram Bot API + curated source MCPs + image-gen MCP + lean-ctx — drafts go to you for approval until voice is calibrated |
+| Use case | Default stack (Claude Code base) | Codex base swap |
+|----------|----------------------------------|-----------------|
+| **Telegram bot maintenance** | Claude Code + ECC + Archon + lean-ctx (+ GitNexus) | Codex CLI + ECC + Archon + lean-ctx (+ GitNexus); add **SaehwanPark/meta-harness** if you want the six team patterns |
+| **Crypto opportunity scouting** | Hermes Agent *or* Multica + DefiLlama/Dune/Etherscan MCPs + lean-ctx — research-only | **Same.** Hermes is model-agnostic; Multica supports Codex day-one |
+| **AI / neurovibe Telegram channel** | Hermes Agent + Telegram Bot API + curated source MCPs + image-gen MCP + lean-ctx | **Same.** Hermes runtime doesn't care which coding model you use elsewhere |
 
-**Three rules across all three:** never give an agent your private keys; never give an agent your bot tokens; always start with a human approval gate and remove it only after the data says you can.
+**Three rules across all four sections:** never give an agent your private keys; never give an agent your bot tokens; always start with a human approval gate and remove it only after the data says you can.
